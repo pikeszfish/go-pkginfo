@@ -4,7 +4,7 @@
 
 print_usage() {
     echo "Usage: "
-    echo "  pkginfo [-d /go/src/github.com/docker/docker] [-r] [-v] [-h]"
+    echo "  pkginfo [-d /go/src/github.com/docker/docker] [-r] [-v] [-t] [-h]"
 }
 
 while getopts "d:hrvt" opt; do
@@ -42,20 +42,13 @@ RECURSION="${RECURSION:-false}"
 VERBOSE="${VERBOSE:-false}"
 TRANSLATION="${TRANSLATION:-false}"
 
-# list_postfix_file() {
-#     postfix=$1
-#     path=$2
-#     ls "${path}*.${postfix}"
-# }
 
 # #github.com/x/x##github.com/y/y##github.com/z/z#
 IMPORT_IN_ONE_LINE=""
 ALL_PATH=($DIR)
-# echo ${ALL_PATH[0]}
 
 grep_file_github_import() {
     file_path=$1
-    # awk -F with ']' ??
     grep -E "github.com/" ${file_path} | awk -F '[]"/[]' '{if ($2=="github.com")printf "%s/%s/%s\n", $2,$3,$4;if ($3=="github.com")printf "%s/%s/%s\n", $3,$4,$5}' | uniq
 }
 
@@ -75,18 +68,17 @@ while [ ${#ALL_PATH[@]} -gt 0 ]; do
     current_path=${ALL_PATH[${current_path_num}-1]}
     unset ALL_PATH[${current_path_num}-1]
     for f in `ls ${current_path}/*.go 2>/dev/null`; do
-
         for ipt in `grep_file_github_import $f`; do
-            if [[ *${IMPORT_IN_ONE_LINE}* != *"#"${ipt}"#"* ]]
+            if [[ ${IMPORT_IN_ONE_LINE} != *"#"${ipt}"#"* ]]
             then
                 IMPORT_IN_ONE_LINE=${IMPORT_IN_ONE_LINE}"#"${ipt}"#"
-                printf "\E[32m${index}. ${ipt}\n\E[0m"
+                printf "\E[32m%3d. ${ipt}\n\E[0m" ${index}
                 index=$(($index+1))
 
                 if [ "${TRANSLATION}" == true ]; then
                     real_info=`go_get_info ${ipt}`
-                    echo "       ${real_info}"
-                    echo "       `go_translate_it ${real_info}`"
+                    echo "        ${real_info}"
+                    echo "        `go_translate_it ${real_info}`"
                     echo ""
                 elif [ "${VERBOSE}" == true ]; then
                     real_info=`go_get_info ${ipt}`
